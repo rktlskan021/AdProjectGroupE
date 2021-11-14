@@ -1,0 +1,95 @@
+import os,random,pygame,sys,glob
+from PIL import Image
+
+pygame.init()
+
+WIDTH=600   #윈도우 창 width,height
+HEIGHT=600  
+FPS=30           
+
+screen=pygame.display.set_mode((WIDTH,HEIGHT))  
+clock=pygame.time.Clock()
+
+pygame.display.set_caption("finding same pictures !")   #Game TITLE
+pygame.display.set_icon(pygame.image.load("image/dog1.jpg"))  #Game icon
+
+x=(WIDTH/2)/(3+1)  #길이의 50%를 공백으로 할당
+y=(HEIGHT/2)/(3+1)      
+
+i_x=(WIDTH/2)/(3)   #길이의 50%를 사진 공간으로 할당
+i_y=(HEIGHT/2)/(3)
+
+# pics=["image/dog1.jpg","image/dog2.jpg","image/dog3.jpg","image/dog4.jpg",
+# "image/cat1.jpg","image/cat2.jpg","image/cat3.jpg","image/bare1.jpg","image/human1.jpg"]
+# image=["image1","image2","image3","image4","imagr5",
+# "image6","image7","image8","image9"]
+
+# Lil=True
+# while Lil:
+#     for i in pics:
+#         a=i
+#     for u in image:
+#         b=u
+#     b=pygame.image.load(a)
+#     b=pygame.transform.scale(b,(i_x,i_y))
+#     Lil=False
+# for i,u in zip(pics,image):
+#         u=pygame.image.load(i)
+#         u=pygame.transform.scale(u,(i_x,i_y))
+
+image1=pygame.image.load("image/dog1.jpg")  #dog1이미지객체생성
+image1=pygame.transform.scale(image1,(i_x,i_y))
+
+image2=pygame.image.load("image/dog2.jpg")  
+image2=pygame.transform.scale(image2,(i_x,i_y))
+
+image3=pygame.image.load("image/dog3.jpg") 
+image3=pygame.transform.scale(image3,((i_x,i_y)))
+
+image4=pygame.image.load("image/dog4.jpg")  
+image4=pygame.transform.scale(image4,(i_x,i_y))
+
+image5=pygame.image.load("image/cat1.jpg")  
+image5=pygame.transform.scale(image5,(i_x,i_y))
+
+image6=pygame.image.load("image/cat2.jpg")  
+image6=pygame.transform.scale(image6,((i_x,i_y)))
+
+image7=pygame.image.load("image/cat3.jpg")  
+image7=pygame.transform.scale(image7,(i_x,i_y))
+
+image8=pygame.image.load("image/bare1.jpg")  
+image8=pygame.transform.scale(image8,(i_x,i_y))
+
+image9=pygame.image.load("image/human1.jpg")  
+image9=pygame.transform.scale(image9,((i_x,i_y)))
+
+z=[image1,image2,image3,image4,image5,image6,image7,image8,image9]
+random.shuffle(z)
+
+
+GAME=True
+while GAME:
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            GAME=False
+            break
+
+    screen.fill((0,0,0))
+    value=[x,y]
+    count=0
+    for i in range(3):
+        for u in range(3):
+            screen.blit(z[count],value)
+            value[0]=value[0]+i_x+x
+            count+=1
+        value[0]=x
+        value[1]=value[1]+i_y+y            
+
+    pygame.display.update() #모든 화면 그리기 업데이트
+    pygame.display.flip()
+    clock.tick(30)
+
+pygame.display.quit()
+
