@@ -11,21 +11,19 @@ current = 30
 imageList=["image/dog1.jpg","image/dog2.jpg","image/dog3.jpg"
        ,"image/dog4.jpg","image/cat1.jpg","image/cat2.jpg"
         ,"image/cat3.jpg","image/bare1.jpg"]
-a=[]
-b=[]
+
 c=[]
 dic={}
+pair = [[0 for i in range(2)] for j in range(16)]
 class Button(QToolButton):
 
-    def __init__(self,icon,callback):
+    def __init__(self,icon,callback,index_0,index_1):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setIcon(QtGui.QIcon(icon))
         self.clicked.connect(callback)
-
-        a.append(self)
+        pair[index_0][index_1]=self
         c.append(self)
-
 
     def sizeHint(self):
         size = super(Button, self).sizeHint()
@@ -66,16 +64,17 @@ class Game(QWidget):
         self.lcd = QLCDNumber()
         self.lcd.display('')
         self.lcd.setDigitCount(8)
+
         self.StartButton = QPushButton("시작")
         self.StartButton.clicked.connect(self.StartButtonClicked)
 
         #버튼 생성
         for i in imageList:
             for u in range(2):
-                button=Button("",self.buttonClicked)
+                button=Button("",self.buttonClicked,imageList.index(i),u)
                 dic[button]=i
-                b.append(a)
-            a.clear()
+
+        print(pair)
         random.shuffle(c)
         r = 0; d = 0
         for i in c:
