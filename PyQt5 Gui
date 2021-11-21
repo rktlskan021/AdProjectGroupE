@@ -1,4 +1,4 @@
-import sys
+import sys,random
 from PyQt5.QtWidgets import QLabel,QVBoxLayout,QHBoxLayout,QDesktopWidget
 from PyQt5 import QtGui,QtCore
 from PyQt5.QtWidgets import QApplication, QWidget
@@ -7,14 +7,24 @@ from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QLayout,QGridLayout,QPushButton,QLCDNumber
 from PyQt5.QtCore import QTimer
 
-current = 60
+current = 30
+imageList=["image/dog1.jpg","image/dog2.jpg","image/dog3.jpg"
+       ,"image/dog4.jpg","image/cat1.jpg","image/cat2.jpg"
+        ,"image/cat3.jpg","image/bare1.jpg"]
+a=[]
+b=[]
+c=[]
 class Button(QToolButton):
 
-    def __init__(self, text, callback):
+    def __init__(self,icon):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.setText(text)
-        self.clicked.connect(callback)
+        self.setIcon(QtGui.QIcon(icon))
+        self.setIconSize(QtCore.QSize(100,100))
+
+        a.append(self)
+        c.append(self)
+        # self.clicked.connect(callback)
 
     def sizeHint(self):
         size = super(Button, self).sizeHint()
@@ -33,19 +43,19 @@ class Game(QWidget):
         self.timer.timeout.connect(self.countdown)
         self.lcd = QLCDNumber()
         self.lcd.display('')
-        self.lcd.setDigitCount(8)
+        self.lcd.setDigitCount(10)
         self.StartButton = QPushButton("시작")
         self.StartButton.clicked.connect(self.StartButtonClicked)
-        #레이아웃 선언
 
+        #레이아웃 선언
         player1Box = QVBoxLayout()
         player2Box = QVBoxLayout()
         TimerBox = QVBoxLayout()
         GameBox = QGridLayout()
         middleBox = QVBoxLayout()
         mainBox = QHBoxLayout()
-        #player text 생성
 
+        #player text 생성
         player1 = QLabel("Player1", self)
         player2 = QLabel("Player2", self)
 
@@ -60,10 +70,22 @@ class Game(QWidget):
         self.StartButton.clicked.connect(self.StartButtonClicked)
 
         #버튼 생성
-        button = QPushButton("pics")
 
+        for i in imageList:
+            for u in range(2):
+                button=Button(i)
+            b.append(a)
+            a.clear()
+        r = 0; d = 0
+        random.shuffle(c)
+        for i in c:
+            GameBox.addWidget(i,r,d)
+            d+=1
+            if d>=4:
+                d=0
+                r+=1
 
-
+        #레이아웃
         player1Box.addWidget(player1)
         player1Box.addStretch(3)
 
@@ -73,21 +95,14 @@ class Game(QWidget):
         TimerBox.addWidget(self.lcd)
         TimerBox.addWidget(self.StartButton)
 
-        GameBox.addWidget(button, 1, 1)
-
         middleBox.addLayout(TimerBox)
-
         middleBox.addLayout(GameBox)
 
-
         mainBox.addLayout(player1Box)
-        mainBox.addStretch(1)
         mainBox.addLayout(middleBox)
-        mainBox.addStretch(1)
-
         mainBox.addLayout(player2Box)
 
-        self.resize(600,600)
+        self.resize(1000,900)
         self.center()
         self.setLayout(mainBox)
         self.show()
@@ -100,6 +115,9 @@ class Game(QWidget):
         global current
         self.lcd.display(current)
         current -= 1
+        if current<0:
+            self.lcd.display("00")
+            self.timer.stop()
 
     def center(self):
         W_size=self.frameGeometry()
