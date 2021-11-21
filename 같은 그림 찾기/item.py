@@ -6,7 +6,6 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
 
 
-
 class MyApp(QWidget):
     a = 0
     def __init__(self):

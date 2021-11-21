@@ -4,7 +4,7 @@ import threading
 from PyQt5.QtWidgets import (QWidget, QLabel, QGridLayout,
                              QVBoxLayout, QPushButton, QApplication, QHBoxLayout, QToolButton, QSizePolicy)
 from PyQt5 import QtGui
-from image import imageList
+from image import imageList, imageB, imageChange
 
 import pickle
 
@@ -16,12 +16,12 @@ m[0][1] = 1
 
 class Button(QToolButton):
 
-    def __init__(self, icon):
+    def __init__(self, icon, callback, name):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setIcon(QtGui.QIcon(icon))
-        # self.setText(text)
-        # self.clicked.connect(callback)
+        self.setObjectName(name)
+        self.clicked.connect(callback)
 
     def sizeHint(self):
         size = super(Button, self).sizeHint()
@@ -41,20 +41,16 @@ class Example(QWidget):
         self.player1 = QLabel('player1')
         self.player2 = QLabel('player2')
 
-
-        self.imageButton = QPushButton()
-        self.imageButton.setIcon(QtGui.QIcon('image/emblem_color.jpg'))
-        print(self.imageButton.sizeHint())
-
         hBoxLayout = QHBoxLayout()
         hBoxLayout.addWidget(self.player1)
         hBoxLayout.addWidget(self.player2)
 
-        imageLayout = QGridLayout()
+        self.imageLayout = QGridLayout()
         r = 0; c = 0
-        for i in imageList:
-            button = Button(i)
-            imageLayout.addWidget(button, r, c)
+        for i, path in enumerate(imageList):
+            imageB[i] = True
+            button = Button("", self.buttonClicked, path)
+            self.imageLayout.addWidget(button, r, c)
             c += 1
             if c >= 4:
                 c = 0
@@ -62,13 +58,19 @@ class Example(QWidget):
 
         vBoxLatout = QVBoxLayout()
         vBoxLatout.addLayout(hBoxLayout)
-        vBoxLatout.addLayout(imageLayout)
+        vBoxLatout.addLayout(self.imageLayout)
 
         self.setLayout(vBoxLatout)
-
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('Review')
         self.show()
+
+    def buttonClicked(self):
+        key = self.sender()
+        numberKey = self.imageLayout.indexOf(key)
+        imageKey = imageB[numberKey] = not imageB[numberKey]
+        self.sender().setIcon(QtGui.QIcon(imageChange[numberKey][imageKey]))
+
 
     def startServer(self):
         self.s.open()

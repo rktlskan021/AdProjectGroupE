@@ -1,0 +1,111 @@
+import sys
+from PyQt5.QtWidgets import QLabel,QVBoxLayout,QHBoxLayout,QDesktopWidget
+from PyQt5 import QtGui,QtCore
+from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QLineEdit, QToolButton
+from PyQt5.QtWidgets import QSizePolicy
+from PyQt5.QtWidgets import QLayout,QGridLayout,QPushButton,QLCDNumber
+from PyQt5.QtCore import QTimer
+
+current = 60
+class Button(QToolButton):
+
+    def __init__(self, text, callback):
+        super().__init__()
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setText(text)
+        self.clicked.connect(callback)
+
+    def sizeHint(self):
+        size = super(Button, self).sizeHint()
+        size.setHeight(size.height() + 20)
+        size.setWidth(max(size.width(), size.height()))
+        return size
+
+class Game(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.timer = QTimer(self)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.countdown)
+        self.lcd = QLCDNumber()
+        self.lcd.display('')
+        self.lcd.setDigitCount(8)
+        self.StartButton = QPushButton("시작")
+        self.StartButton.clicked.connect(self.StartButtonClicked)
+        #레이아웃 선언
+
+        player1Box = QVBoxLayout()
+        player2Box = QVBoxLayout()
+        TimerBox = QVBoxLayout()
+        GameBox = QGridLayout()
+        middleBox = QVBoxLayout()
+        mainBox = QHBoxLayout()
+        #player text 생성
+
+        player1 = QLabel("Player1", self)
+        player2 = QLabel("Player2", self)
+
+        #타이머 생성
+        self.timer = QTimer(self)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.countdown)
+        self.lcd = QLCDNumber()
+        self.lcd.display('')
+        self.lcd.setDigitCount(8)
+        self.StartButton = QPushButton("시작")
+        self.StartButton.clicked.connect(self.StartButtonClicked)
+
+        #버튼 생성
+        button = QPushButton("pics")
+
+        player1Box.addWidget(player1)
+        player1Box.addStretch(3)
+
+        player2Box.addWidget(player2)
+        player2Box.addStretch(3)
+
+        TimerBox.addWidget(self.lcd)
+        TimerBox.addWidget(self.StartButton)
+
+        GameBox.addWidget(button, 1, 1)
+
+        middleBox.addLayout(TimerBox)
+
+        middleBox.addLayout(GameBox)
+
+
+        mainBox.addLayout(player1Box)
+        mainBox.addStretch(1)
+        mainBox.addLayout(middleBox)
+        mainBox.addStretch(1)
+
+        mainBox.addLayout(player2Box)
+
+        self.resize(600,600)
+        self.center()
+        self.setLayout(mainBox)
+        self.show()
+
+    def StartButtonClicked(self):
+        self.timer.start()
+        self.StartButton.setEnabled(False)
+
+    def countdown(self):
+        global current
+        self.lcd.display(current)
+        current -= 1
+
+    def center(self):
+        W_size=self.frameGeometry()
+        center=QDesktopWidget().availableGeometry().center()
+        W_size.moveCenter(center)
+        self.move(W_size.topLeft())
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = Game()
+    sys.exit(app.exec_())
