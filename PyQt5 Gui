@@ -14,24 +14,24 @@ imageList=["image/dog1.jpg","image/dog2.jpg","image/dog3.jpg"
 a=[]
 b=[]
 c=[]
+dic={}
 class Button(QToolButton):
 
-    def __init__(self,icon):
+    def __init__(self,icon,callback):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setIcon(QtGui.QIcon(icon))
-        self.setIconSize(QtCore.QSize(100,100))
+        self.clicked.connect(callback)
 
         a.append(self)
         c.append(self)
-        # self.clicked.connect(callback)
+
 
     def sizeHint(self):
         size = super(Button, self).sizeHint()
         size.setHeight(size.height() + 20)
         size.setWidth(max(size.width(), size.height()))
         return size
-
 class Game(QWidget):
     def __init__(self):
         super().__init__()
@@ -70,14 +70,14 @@ class Game(QWidget):
         self.StartButton.clicked.connect(self.StartButtonClicked)
 
         #버튼 생성
-
         for i in imageList:
             for u in range(2):
-                button=Button(i)
-            b.append(a)
+                button=Button("",self.buttonClicked)
+                dic[button]=i
+                b.append(a)
             a.clear()
-        r = 0; d = 0
         random.shuffle(c)
+        r = 0; d = 0
         for i in c:
             GameBox.addWidget(i,r,d)
             d+=1
@@ -124,6 +124,10 @@ class Game(QWidget):
         center=QDesktopWidget().availableGeometry().center()
         W_size.moveCenter(center)
         self.move(W_size.topLeft())
+    def buttonClicked(self):
+        key=self.sender()
+        self.sender().setIcon(QtGui.QIcon(dic[key]))
+        self.sender().setIconSize(QtCore.QSize(100,100))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
