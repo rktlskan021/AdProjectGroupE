@@ -2,7 +2,7 @@ import sys
 import socket
 import threading
 from PyQt5.QtWidgets import (QWidget, QLabel, QGridLayout,
-                             QVBoxLayout, QPushButton, QApplication, QHBoxLayout, QToolButton, QSizePolicy)
+                             QVBoxLayout, QApplication, QHBoxLayout, QToolButton, QSizePolicy)
 from PyQt5 import QtGui
 from image import imageList, imageB, imageChange
 
@@ -62,7 +62,7 @@ class Example(QWidget):
 
         self.setLayout(vBoxLatout)
         self.setGeometry(300, 300, 350, 300)
-        self.setWindowTitle('Review')
+        self.setWindowTitle('Server')
         self.show()
 
     def buttonClicked(self):
@@ -71,15 +71,16 @@ class Example(QWidget):
         imageKey = imageB[numberKey] = not imageB[numberKey]
         self.sender().setIcon(QtGui.QIcon(imageChange[numberKey][imageKey]))
 
-
     def startServer(self):
         self.s.open()
 
     def addPlayer(self, c, id):
         print(id)
         self.gamePlayer.append((c, id))
-        self.s.send(self.gamePlayer, m)
+        # self.send(self.gamePlayer, m)
         self.setPlayerLabel()
+        cc = Client(id, c, self)
+        cc.run()
 
     def setPlayerLabel(self):
         if len(self.gamePlayer) == 1:
@@ -87,6 +88,23 @@ class Example(QWidget):
         elif len(self.gamePlayer) == 2:
             self.player2.setText(self.gamePlayer[1][1])
 
+    def send(self, client, msg):
+        try:
+            data = pickle.dumps(msg)
+        except:
+            data = msg.decode()
+        for i in client:
+            i[0].sendall(data)
+
+    def changeImage(self, info):
+        print(info)
+        numberKey = info[0]
+        imageKey = info[1]
+        self.imageLayout.takeAt(numberKey).widget().setIcon(QtGui.QIcon(imageChange[numberKey][imageKey]))
+
+    def delClient(self, c):
+        c.close()
+        self.gamePlayer.remove(c)
 # class Client:
 #     def __init__(self, id, soc):
 #         self.id = id
@@ -104,6 +122,28 @@ class Example(QWidget):
 #     def run(self):
 #         t = threading.Thread(target=self.recvMsg, args=())
 #         t.start()
+
+class Client:
+    def __init__(self, id, soc, r):
+        self.id = id
+        self.soc = soc
+        self.r = r
+
+    def recv(self):
+        while True:
+            data = self.soc.recv(1024)
+            try:
+                msg = pickle.loads(data)
+            except:
+                msg = data.decode()
+            self.r.changeImage(msg)
+
+        self.r.delClient(self)
+        self.r.send(self.id + '님이 퇴장하셨습니다.')
+
+    def run(self):
+        t = threading.Thread(target=self.recv, args=())
+        t.start()
 
 class Server:
     def __init__(self, ui):
@@ -127,28 +167,7 @@ class Server:
             msg = client.recv(1024)
             id = msg.decode()
             self.ui.addPlayer(client, id)
-            # self.ui.add
 
-    def send(self, client, msg):
-        # print(client)
-        data = pickle.dumps(msg)
-        for i in client:
-            i[0].sendall(data)
-
-
-    def recv(self):
-        pass
-    # def run(self):
-    #     self.open()
-    #     print("서버 시작")
-    #     while True:
-    #         print(addr)
-    #         msg = '사용할 id:'
-    #         client_socket.sendall(msg.encode(encoding='utf-8'))
-    #         msg = client_socket.recv(1024)
-    #         id = msg.decode()
-    #         client = Client(id, client_socket)
-    #         ui.addPlayer(client)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
