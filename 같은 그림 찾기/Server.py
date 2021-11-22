@@ -38,12 +38,12 @@ class Example(QWidget):
         self.startServer()
 
     def initUI(self):
-        self.player1 = QLabel('player1')
-        self.player2 = QLabel('player2')
-
-        hBoxLayout = QHBoxLayout()
-        hBoxLayout.addWidget(self.player1)
-        hBoxLayout.addWidget(self.player2)
+        # self.player1 = QLabel('player1')
+        # self.player2 = QLabel('player2')
+        #
+        # hBoxLayout = QHBoxLayout()
+        # hBoxLayout.addWidget(self.player1)
+        # hBoxLayout.addWidget(self.player2)
 
         self.imageLayout = QGridLayout()
         r = 0; c = 0
@@ -57,7 +57,7 @@ class Example(QWidget):
                 r += 1
 
         vBoxLatout = QVBoxLayout()
-        vBoxLatout.addLayout(hBoxLayout)
+        # vBoxLatout.addLayout(hBoxLayout)
         vBoxLatout.addLayout(self.imageLayout)
 
         self.setLayout(vBoxLatout)
@@ -74,33 +74,32 @@ class Example(QWidget):
     def startServer(self):
         self.s.open()
 
-    def addPlayer(self, c, id):
-        print(id)
-        self.gamePlayer.append((c, id))
+    def addPlayer(self, c):
+        self.gamePlayer.append(c)
         # self.send(self.gamePlayer, m)
-        self.setPlayerLabel()
-        cc = Client(id, c, self)
+        # self.setPlayerLabel()
+        cc = Client(c, self)
         cc.run()
 
-    def setPlayerLabel(self):
-        if len(self.gamePlayer) == 1:
-            self.player1.setText(self.gamePlayer[0][1])
-        elif len(self.gamePlayer) == 2:
-            self.player2.setText(self.gamePlayer[1][1])
+    # def setPlayerLabel(self):
+    #     if len(self.gamePlayer) == 1:
+    #         self.player1.setText(self.gamePlayer[0][1])
+    #     elif len(self.gamePlayer) == 2:
+    #         self.player2.setText(self.gamePlayer[1][1])
 
-    def send(self, client, msg):
+    def send(self, msg):
         try:
             data = pickle.dumps(msg)
         except:
             data = msg.decode()
-        for i in client:
-            i[0].sendall(data)
+        for i in self.gamePlayer:
+            i.sendall(data)
 
     def changeImage(self, info):
-        print(info)
         numberKey = info[0]
         imageKey = info[1]
-        self.imageLayout.takeAt(numberKey).widget().setIcon(QtGui.QIcon(imageChange[numberKey][imageKey]))
+        self.imageLayout.itemAt(numberKey).widget().setIcon(QtGui.QIcon(imageChange[numberKey][imageKey]))
+        self.send(info)
 
     def delClient(self, c):
         c.close()
@@ -124,8 +123,7 @@ class Example(QWidget):
 #         t.start()
 
 class Client:
-    def __init__(self, id, soc, r):
-        self.id = id
+    def __init__(self, soc, r):
         self.soc = soc
         self.r = r
 
@@ -139,7 +137,6 @@ class Client:
             self.r.changeImage(msg)
 
         self.r.delClient(self)
-        self.r.send(self.id + '님이 퇴장하셨습니다.')
 
     def run(self):
         t = threading.Thread(target=self.recv, args=())
@@ -162,11 +159,12 @@ class Server:
             self.server_socket.listen(2)
             client, addr = self.server_socket.accept()
             print(addr)
-            msg = '사용할 id:'
-            client.sendall(msg.encode(encoding='utf-8'))
-            msg = client.recv(1024)
-            id = msg.decode()
-            self.ui.addPlayer(client, id)
+            # msg = '사용할 id:'
+            # client.sendall(msg.encode(encoding='utf-8'))
+            # msg = client.recv(1024)
+            # id = msg.decode()
+            # self.ui.addPlayer(client, id)
+            self.ui.addPlayer(client)
 
 
 if __name__ == '__main__':

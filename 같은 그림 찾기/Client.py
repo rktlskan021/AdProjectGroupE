@@ -23,27 +23,16 @@ class Button(QToolButton):
         size.setHeight(size.height() + 20)
         size.setWidth(max(size.width(), size.height()))
         return size
+#
+# def sendMsg(soc):
+#     while True:
+#         msg = input('')
+#         soc.sendall(msg.encode(encoding='utf-8'))
+#         if msg != '':
+#
+#             break
+#     print('id 입력 완료')
 
-def sendMsg(soc):
-    while True:
-        msg = input('')
-        soc.sendall(msg.encode(encoding='utf-8'))
-        if msg != '':
-            break
-    print('id 입력 완료')
-
-def recvMsg(soc):
-    while True:
-        data = soc.recv(1024)
-        try:
-            msg = pickle.loads(data)
-        except:
-            msg = data.decode()
-        print(msg)
-        if msg == '/stop':
-            break
-    soc.close()
-    print('클라이언트 리시브 쓰레드 종료')
 
 class Client(QWidget):
     ip = 'localhost'
@@ -57,12 +46,12 @@ class Client(QWidget):
 
 
     def initUI(self):
-        self.player1 = QLabel('player1')
-        self.player2 = QLabel('player2')
+        # self.player1 = QLabel('player1')
+        # self.player2 = QLabel('player2')
 
-        hBoxLayout = QHBoxLayout()
-        hBoxLayout.addWidget(self.player1)
-        hBoxLayout.addWidget(self.player2)
+        # hBoxLayout = QHBoxLayout()
+        # hBoxLayout.addWidget(self.player1)
+        # hBoxLayout.addWidget(self.player2)
 
         self.imageLayout = QGridLayout()
         r = 0; c = 0
@@ -76,7 +65,7 @@ class Client(QWidget):
                 r += 1
 
         vBoxLatout = QVBoxLayout()
-        vBoxLatout.addLayout(hBoxLayout)
+        # vBoxLatout.addLayout(hBoxLayout)
         vBoxLatout.addLayout(self.imageLayout)
 
         self.setLayout(vBoxLatout)
@@ -92,14 +81,32 @@ class Client(QWidget):
         self.send(numberKey, imageKey)
 
     def run(self):
-        t = threading.Thread(target=sendMsg, args=(self.client_socket,))
-        t.start()
-        t2 = threading.Thread(target=recvMsg, args=(self.client_socket,))
+        # t = threading.Thread(target=sendMsg, args=(self.client_socket,))
+        # t.start()
+        t2 = threading.Thread(target=self.recvMsg, args=(self.client_socket,))
         t2.start()
 
     def send(self, nk, ik):
         data = pickle.dumps((nk, ik))
         self.client_socket.sendall(data)
+
+    def recvMsg(self, soc):
+        while True:
+            data = soc.recv(1024)
+            try:
+                msg = pickle.loads(data)
+            except:
+                msg = data.decode()
+            self.changeImage(msg)
+            if msg == '/stop':
+                break
+        soc.close()
+        print('클라이언트 리시브 쓰레드 종료')
+
+    def changeImage(self, info):
+        numberKey = info[0]
+        imageKey = info[1]
+        self.imageLayout.itemAt(numberKey).widget().setIcon(QtGui.QIcon(imageChange[numberKey][imageKey]))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
