@@ -7,7 +7,6 @@ from PyQt5 import QtGui
 from image import imageList, imageB, imageChange
 
 import pickle
-m = [[0 for i in range(5)] for j in range(5)]
 
 class Button(QToolButton):
 

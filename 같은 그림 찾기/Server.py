@@ -1,18 +1,21 @@
 import sys
 import socket
 import threading
-from PyQt5.QtWidgets import (QWidget, QLabel, QGridLayout,
-                             QVBoxLayout, QApplication, QHBoxLayout, QToolButton, QSizePolicy)
+import random
+
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import Qt
+from PyQt5.QtWidgets import (QWidget, QLineEdit, QGridLayout, QPushButton,
+                             QVBoxLayout, QApplication, QHBoxLayout, QToolButton, QSizePolicy, QLCDNumber)
 from PyQt5 import QtGui
-from image import imageList, imageB, imageChange
+from image import imageList, imageB, imageChange, itemList
 
 import pickle
 
 ip = ''
 port = 5000
 
-m = [[0 for i in range(5)] for j in range(5)]
-m[0][1] = 1
+dic = {}
 
 class Button(QToolButton):
 
@@ -38,18 +41,12 @@ class Example(QWidget):
         self.startServer()
 
     def initUI(self):
-        # self.player1 = QLabel('player1')
-        # self.player2 = QLabel('player2')
-        #
-        # hBoxLayout = QHBoxLayout()
-        # hBoxLayout.addWidget(self.player1)
-        # hBoxLayout.addWidget(self.player2)
-
         self.imageLayout = QGridLayout()
         r = 0; c = 0
         for i, path in enumerate(imageList):
             imageB[i] = True
             button = Button("", self.buttonClicked, path)
+            dic[button] = path
             self.imageLayout.addWidget(button, r, c)
             c += 1
             if c >= 4:
@@ -64,6 +61,69 @@ class Example(QWidget):
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('Server')
         self.show()
+
+        # 레이아웃 선언
+        playerBox = QVBoxLayout()
+        itemBox = QVBoxLayout()
+        TimerBox = QVBoxLayout()
+        middleBox = QHBoxLayout()
+        mainBox = QVBoxLayout()
+
+        # player text 상자 생성
+        self.display = QLineEdit("it's your turn")
+        self.display.setReadOnly(True)
+        self.display.setAlignment(Qt.AlignCenter)
+        self.display.setMaxLength(15)
+
+        # 타이머 생성
+        self.timer = QTimer(self)
+        self.lcd = QLCDNumber()
+        self.StartButton = QPushButton("준비")
+        self.Timer(self.timer, self.lcd, self.StartButton, self.countdown, self.StartButtonClicked)
+
+        # player 타이머 생성
+        self.player_timer = QTimer(self)
+        self.player_lcd = QLCDNumber()
+        self.player_StartButton = QPushButton("준비")
+        self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
+                   self.player_StartButtonClicked)
+
+        # 아이템 버튼 생성
+        for i in itemList:
+            button = Button(i, self.itemClicked)
+            itemBox.addWidget(button)
+
+        # 카드 버튼 생성
+        for i in imageList:
+            for u in range(2):
+                button = Button("image/human1.jpg", self.buttonClicked, imageList.index(i), u)
+                dic[button] = i
+
+        random.shuffle(c)
+
+        # 레이아웃
+        playerBox.addWidget(self.display)
+        playerBox.addWidget(self.player_lcd)
+        playerBox.addWidget(self.player_StartButton)
+
+        TimerBox.addWidget(self.lcd)
+        TimerBox.addWidget(self.StartButton)
+
+        middleBox.addLayout(playerBox)
+        middleBox.addStretch(1)
+        middleBox.addLayout(TimerBox)
+        middleBox.addStretch(1)
+        middleBox.addLayout(itemBox)
+
+        mainBox.addLayout(middleBox)
+        mainBox.addStretch(1)
+        mainBox.addLayout(self.imageLayout)
+
+        self.resize(1000, 900)
+        self.center()
+        self.setLayout(mainBox)
+        self.show()
+
 
     def buttonClicked(self):
         key = self.sender()
@@ -87,19 +147,21 @@ class Example(QWidget):
     #     elif len(self.gamePlayer) == 2:
     #         self.player2.setText(self.gamePlayer[1][1])
 
-    def send(self, msg):
+    def send(self, msg, soc):
         try:
             data = pickle.dumps(msg)
         except:
             data = msg.decode()
-        for i in self.gamePlayer:
-            i.sendall(data)
 
-    def changeImage(self, info):
+        for i in self.gamePlayer:
+            if i != soc:
+                i.sendall(data)
+
+    def changeImage(self, info, soc):
         numberKey = info[0]
         imageKey = info[1]
         self.imageLayout.itemAt(numberKey).widget().setIcon(QtGui.QIcon(imageChange[numberKey][imageKey]))
-        self.send(info)
+        self.send(info, soc)
 
     def delClient(self, c):
         c.close()
@@ -134,7 +196,7 @@ class Client:
                 msg = pickle.loads(data)
             except:
                 msg = data.decode()
-            self.r.changeImage(msg)
+            self.r.changeImage(msg, self.soc)
 
         self.r.delClient(self)
 
