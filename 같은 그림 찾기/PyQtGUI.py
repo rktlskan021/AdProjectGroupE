@@ -1,4 +1,8 @@
 import sys, random
+import socket
+import threading
+import pickle
+
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QDesktopWidget
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QApplication, QWidget
@@ -7,20 +11,27 @@ from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QLayout, QGridLayout, QPushButton, QLCDNumber
 from PyQt5.QtCore import QTimer, Qt
 
+ip = ''
+port = 5000
 current = 120
 player_current = 3
 imageList = ["image/dog1.jpg", "image/dog2.jpg", "image/dog3.jpg",
              "image/dog4.jpg", "image/cat1.jpg", "image/cat2.jpg",
-             "image/cat3.jpg", "image/bare1.jpg"]
+             "image/cat3.jpg", "image/bare1.jpg",
+             "image/dog1.jpg", "image/dog2.jpg", "image/dog3.jpg",
+             "image/dog4.jpg", "image/cat1.jpg", "image/cat2.jpg",
+             "image/cat3.jpg", "image/bare1.jpg"
+             ]
 
 itemList = ["image/clock.jpg", "image/card.jpg"]
 
+imageB = [True for i in range(16)]
 c = []
 dic = {}
 
 class Button(QToolButton):
 
-    def __init__(self, icon, callback, index_0=None, index_1=None):
+    def __init__(self, icon, callback, index_0=None):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setIcon(QtGui.QIcon(icon))
@@ -29,7 +40,6 @@ class Button(QToolButton):
         if index_0 is None:
             pass
         else:
-            pair[index_0][index_1] = self
             c.append(self)
 
     def sizeHint(self):
@@ -42,15 +52,18 @@ class Button(QToolButton):
 class Game(QWidget):
     def __init__(self):
         super().__init__()
+        self.gamePlayer = []
+        self.s = Server(self)
+        self.startServer()
         self.initUI()
 
     def initUI(self):
-
+        random.shuffle(imageList)
         # 레이아웃 선언
+        self.GameBox = QGridLayout()
         playerBox = QVBoxLayout()
         itemBox = QVBoxLayout()
         TimerBox = QVBoxLayout()
-        GameBox = QGridLayout()
         middleBox = QHBoxLayout()
         mainBox = QVBoxLayout()
 
@@ -80,15 +93,13 @@ class Game(QWidget):
 
         # 카드 버튼 생성
         for i in imageList:
-            for u in range(2):
-                button = Button("image/human1.jpg", self.buttonClicked, imageList.index(i), u)
-                dic[button] = i
-        print(pair)
-        random.shuffle(c)
-        r = 0;
-        d = 0
+            button = Button("image/human1.jpg", self.buttonClicked, imageList.index(i))
+            dic[button] = (i, "image/human1.jpg")
+
+        print(imageList)
+        r = 0;d = 0
         for i in c:
-            GameBox.addWidget(i, r, d)
+            self.GameBox.addWidget(i, r, d)
             d += 1
             if d >= 4:
                 d = 0
@@ -110,8 +121,9 @@ class Game(QWidget):
 
         mainBox.addLayout(middleBox)
         mainBox.addStretch(1)
-        mainBox.addLayout(GameBox)
+        mainBox.addLayout(self.GameBox)
 
+        self.setWindowTitle('Server')
         self.resize(1000, 900)
         self.center()
         self.setLayout(mainBox)
@@ -149,8 +161,15 @@ class Game(QWidget):
 
     def buttonClicked(self):
         key = self.sender()
-        self.sender().setIcon(QtGui.QIcon(dic[key]))
+        imageKey = imageB[c.index(key)] = not imageB[c.index(key)]
+        self.sender().setIcon(QtGui.QIcon(dic[key][imageKey]))
         self.sender().setIconSize(QtCore.QSize(110, 110))
+
+    def changeImage(self, info, soc):
+        key = info[0]
+        imageKey = info[1]
+        self.GameBox.itemAt(key).widget().setIcon(QtGui.QIcon(dic[c[key]][imageKey]))
+        self.send(info, soc)
 
     def itemClicked(self):
         pass
@@ -162,6 +181,85 @@ class Game(QWidget):
         lcd.setDigitCount(10)
         StartButton.clicked.connect(callback2)
 
+    def startServer(self):
+        self.s.open()
+
+    def addPlayer(self, c):
+        self.gamePlayer.append(c)
+        cc = Client(c, self)
+        cc.run()
+
+    def send(self, msg, soc):
+        try:
+            data = pickle.dumps(msg)
+        except:
+            data = msg.decode()
+
+        for i in self.gamePlayer:
+            if i != soc and msg[0] != 'D':
+                print("전송")
+                i.sendall(data)
+            elif msg[0] == 'D':
+                i.sendall(data)
+
+    def delClient(self, c):
+        c.close()
+        self.gamePlayer.remove(c)
+
+class Client:
+    gameStart = 0
+    gameScore = {}
+    def __init__(self, soc, r):
+        self.soc = soc
+        self.r = r
+    def recvs(self):
+        while True:
+            data = self.soc.recv(1024)
+            try:
+                msg = pickle.loads(data)
+            except:
+                msg = data.decode()
+            print(msg)
+            if msg[0] == 'B':
+                self.r.send(msg, self.soc)
+            elif msg[0] == 'C':
+                print('debug')
+                self.r.send(msg, self.soc)
+            elif msg[0] == 'D':
+                Client.gameStart += msg[1]
+                if Client.gameStart == 2:
+                    self.r.send(msg, self.soc)
+            elif msg[0] == 'E':
+                Client.gameScore[msg[1][0]] = msg[1][1]
+                print(Client.gameScore)
+            else:
+                self.r.changeImage(msg, self.soc)
+
+        self.r.delClient(self)
+
+    def run(self):
+        t = threading.Thread(target=self.recvs, args=())
+        t.start()
+
+class Server:
+    def __init__(self, ui):
+        self.server_socket = None
+        self.ui = ui
+
+    def open(self):
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((ip, port))
+        self.t = threading.Thread(target=self.listen, args=())
+        self.t.start()
+
+    def listen(self):
+        print("서버시작")
+        while True:
+            self.server_socket.listen(2)
+            client, addr = self.server_socket.accept()
+            client.sendall(pickle.dumps(('A', imageList)))
+            print(addr)
+            self.ui.addPlayer(client)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

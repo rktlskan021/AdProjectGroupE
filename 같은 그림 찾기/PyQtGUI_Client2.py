@@ -1,0 +1,290 @@
+import sys
+import socket
+import threading
+import pickle
+import time
+
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QDesktopWidget
+from PyQt5 import QtGui, QtCore
+from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QLineEdit, QToolButton
+from PyQt5.QtWidgets import QSizePolicy
+from PyQt5.QtWidgets import QLayout, QGridLayout, QPushButton, QLCDNumber
+from PyQt5.QtCore import QTimer, Qt
+
+current = 120
+player_current = 3
+# imageList = ["image/dog1.jpg", "image/dog2.jpg", "image/dog3.jpg",
+#              "image/dog4.jpg", "image/cat1.jpg", "image/cat2.jpg",
+#              "image/cat3.jpg", "image/bare1.jpg"]
+imageList = []
+itemList = ["image/clock.jpg", "image/card.jpg"]
+
+imageB = [True for i in range(16)]
+c = []
+dic = {}
+
+class Button(QToolButton):
+
+    def __init__(self, icon, callback, index_0=None):
+        super().__init__()
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setIcon(QtGui.QIcon(icon))
+        self.setIconSize(QtCore.QSize(110, 110))
+        self.clicked.connect(callback)
+        if index_0 is None:
+            pass
+        else:
+            c.append(self)
+
+    def sizeHint(self):
+        size = super(Button, self).sizeHint()
+        size.setHeight(size.height() + 20)
+        size.setWidth(max(size.width(), size.height()))
+        return size
+
+
+class Game(QWidget):
+    ip = 'localhost'
+    port = 5000
+    score = 0
+    outCount = 0
+    turn = False
+    clear = 0
+
+    def __init__(self):
+        super().__init__()
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.connect((Game.ip, Game.port))
+        self.run()
+        self.initUI()
+        self.findImageList = []
+
+    def initUI(self):
+        # 레이아웃 선언
+        self.GameBox = QGridLayout()
+        playerBox = QVBoxLayout()
+        itemBox = QVBoxLayout()
+        TimerBox = QVBoxLayout()
+        middleBox = QHBoxLayout()
+        self.mainBox = QVBoxLayout()
+
+        # player text 상자 생성
+        self.display = QLineEdit("Not Ready")
+        self.display.setReadOnly(True)
+        self.display.setAlignment(Qt.AlignCenter)
+        self.display.setMaxLength(15)
+
+        # 타이머 생성
+        self.timer = QTimer(self)
+        self.lcd = QLCDNumber()
+        self.StartButton = QPushButton("준비")
+        self.Timer(self.timer, self.lcd, self.StartButton, self.countdown, self.StartButtonClicked)
+
+        # player 타이머 생성
+        self.player_timer = QTimer(self)
+        self.player_lcd = QLCDNumber()
+        self.player_StartButton = QPushButton("준비")
+        self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
+                   self.player_StartButtonClicked)
+
+        # 아이템 버튼 생성
+        for i in itemList:
+            button = Button(i, self.itemClicked)
+            itemBox.addWidget(button)
+
+        # 카드 버튼 생성
+        for i in imageList:
+            button = Button("image/human1.jpg", self.buttonClicked, imageList.index(i))
+            dic[button] = (i, "image/human1.jpg")
+
+        r = 0;d = 0
+        for i in c:
+            self.GameBox.addWidget(i, r, d)
+            d += 1
+            if d >= 4:
+                d = 0
+                r += 1
+
+        # 레이아웃
+        playerBox.addWidget(self.display)
+        playerBox.addWidget(self.player_lcd)
+        playerBox.addWidget(self.player_StartButton)
+
+        TimerBox.addWidget(self.lcd)
+        TimerBox.addWidget(self.StartButton)
+
+        middleBox.addLayout(playerBox)
+        middleBox.addStretch(1)
+        middleBox.addLayout(TimerBox)
+        middleBox.addStretch(1)
+        middleBox.addLayout(itemBox)
+
+        self.mainBox.addLayout(middleBox)
+        self.mainBox.addStretch(1)
+        self.mainBox.addLayout(self.GameBox)
+
+        self.resize(1000, 900)
+        self.setWindowTitle('Client2')
+        self.center()
+        self.setLayout(self.mainBox)
+        self.show()
+
+
+    def StartButtonClicked(self):
+        self.send('D', 1)
+        self.display.setText("Ready")
+        self.StartButton.setEnabled(False)
+
+    def player_StartButtonClicked(self):
+        self.player_timer.start()
+        self.player_StartButton.setEnabled(False)
+
+    def countdown(self):
+        global current
+        self.lcd.display(current)
+        current -= 1
+        if current < 0:
+            self.lcd.display("00")
+            self.timer.stop()
+
+    def player_countdown(self):
+        global player_current
+        self.player_lcd.display(player_current)
+        player_current -= 1
+        if player_current < 0:
+            self.player_lcd.display("00")
+            self.player_timer.stop()
+            Game.turn = False
+            self.setDisplay()
+
+    def center(self):
+        W_size = self.frameGeometry()
+        center = QDesktopWidget().availableGeometry().center()
+        W_size.moveCenter(center)
+        self.move(W_size.topLeft())
+
+    def itemClicked(self):
+        pass
+
+    def Timer(self, timer, lcd, StartButton, callback1, callback2):
+        timer.setInterval(1000)
+        timer.timeout.connect(callback1)
+        lcd.display("")
+        lcd.setDigitCount(10)
+        StartButton.clicked.connect(callback2)
+
+    def buttonClicked(self):
+        if Game.turn:
+            key = self.sender()
+            imageKey = imageB[c.index(key)] = not imageB[c.index(key)]
+            # self.sender().setIcon(QtGui.QIcon(dic[key][imageKey]))
+            self.sender().setIconSize(QtCore.QSize(110, 110))
+            self.send(c.index(key), imageKey)
+            self.changeImage((c.index(key), imageKey))
+
+    def changeImage(self, info):
+        key = info[0]
+        imageKey = info[1]
+
+        if key not in self.findImageList:
+            self.findImageList.append(key)
+        else:
+            self.findImageList.remove(key)
+
+        self.GameBox.itemAt(key).widget().setIcon(QtGui.QIcon(dic[c[key]][imageKey]))
+        self.findImage()
+
+    def findImage(self):
+        if len(self.findImageList) == 2:
+            firstItem = self.GameBox.itemAt(self.findImageList[0]).widget()
+            secondItem = self.GameBox.itemAt(self.findImageList[1]).widget()
+            if imageList[self.findImageList[0]] == imageList[self.findImageList[1]]:
+                firstItem.setEnabled(False)
+                secondItem.setEnabled(False)
+                self.findImageList.clear()
+                Game.clear += 1
+                # 점수 추가8
+                if Game.turn:
+                    self.score += 1
+                    self.outCount = 0
+                if Game.clear == 8:
+                    self.send('E', ("client2", self.score))
+            else:
+                # 실패 코드
+                firstImage = not imageB[self.findImageList[0]]
+                secondImage = not imageB[self.findImageList[1]]
+                if Game.turn:
+                    self.send('B', ((self.findImageList[0], self.findImageList[1]), (firstImage, secondImage)))
+                self.reverse((self.findImageList[0], self.findImageList[1]), (firstImage, secondImage))
+                self.findImageList.clear()
+                self.outCount += 1
+                if self.outCount == 3 and Game.turn:
+                    # 턴 넘김
+                    Game.turn = False
+                    self.setDisplay()
+                    print("턴 넘김")
+                    self.outCount = 0
+                    t = threading.Thread(target=self.turnChange, args=())
+                    t.start()
+
+    def turnChange(self):
+        t = time.time()
+        while(time.time() - t < 1):
+            continue
+        self.send('C', True)
+
+    def reverse(self, first, second):
+        imageB[first[0]] = second[0]
+        imageB[first[1]] = second[1]
+        firstItem = self.GameBox.itemAt(first[0]).widget()
+        secondItem = self.GameBox.itemAt(first[1]).widget()
+        firstItem.setIcon(QtGui.QIcon(dic[c[first[0]]][second[0]]))
+        secondItem.setIcon(QtGui.QIcon(dic[c[first[1]]][second[1]]))
+
+    def setDisplay(self):
+        if Game.turn:
+            self.display.setText("Your Turn")
+        else:
+            self.display.setText("Not Your Turn")
+
+    def run(self):
+        t2 = threading.Thread(target=self.recvMsg, args=(self.client_socket,))
+        t2.start()
+
+    def send(self, nk, ik):
+        try:
+            self.client_socket.sendall(pickle.dumps((nk, ik)))
+        except Exception as e:
+            print(e)
+
+    def recvMsg(self, soc):
+        global imageList
+        while True:
+            data = soc.recv(1024)
+            try:
+                msg = pickle.loads(data)
+            except:
+                msg = data.decode()
+            if msg[0] == 'A':
+                imageList = msg[1]
+            elif msg[0] == 'B':
+                self.reverse(msg[1][0], msg[1][1])
+            elif msg[0] == 'C':
+                Game.turn = msg[1]
+                self.setDisplay()
+            elif msg[0] == 'D':
+                Game.turn = False
+                self.setDisplay()
+                self.timer.start()
+            else:
+                self.changeImage(msg)
+            if msg == '':
+                break
+        soc.close()
+        print('클라이언트 리시브 쓰레드 종료')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = Game()
+    sys.exit(app.exec_())

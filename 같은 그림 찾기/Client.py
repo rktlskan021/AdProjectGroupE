@@ -9,6 +9,8 @@ from image import imageList, imageB, imageChange
 
 import pickle
 
+
+
 class Button(QToolButton):
     def __init__(self, icon, callback, name):
         super().__init__()
@@ -94,7 +96,7 @@ class Client(QWidget):
 
     def recvMsg(self, soc):
         while True:
-            data = soc.recv(1024)
+            data = soc.recvs(1024)
             try:
                 msg = pickle.loads(data)
             except:

@@ -23,7 +23,7 @@ class ChatClient:#텔레 마케터: 클라이언트 1명이 전송한 메시지�
 
     def recvMsg(self):
         while True:
-            data = self.soc.recv(1024)
+            data = self.soc.recvs(1024)
             msg = data.decode()
             if msg == '/stop':
                 self.sendMsg(msg) # 클라이언트쪽의 리시브 쓰레드 종료하라고..
@@ -66,7 +66,7 @@ class ServerMain:
             print(addr)
             msg = '사용할 id:'
             c_soc.sendall(msg.encode(encoding='utf-8'))
-            msg = c_soc.recv(1024)
+            msg = c_soc.recvs(1024)
             id = msg.decode()
             cc = ChatClient(id, c_soc, self.room)
             self.room.addClient(cc)

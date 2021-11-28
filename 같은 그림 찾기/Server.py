@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (QWidget, QLineEdit, QGridLayout, QPushButton,
 from PyQt5 import QtGui
 from image import imageList, imageB, imageChange, itemList
 
+
 import pickle
 
 ip = ''
@@ -61,69 +62,6 @@ class Example(QWidget):
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('Server')
         self.show()
-
-        # 레이아웃 선언
-        playerBox = QVBoxLayout()
-        itemBox = QVBoxLayout()
-        TimerBox = QVBoxLayout()
-        middleBox = QHBoxLayout()
-        mainBox = QVBoxLayout()
-
-        # player text 상자 생성
-        self.display = QLineEdit("it's your turn")
-        self.display.setReadOnly(True)
-        self.display.setAlignment(Qt.AlignCenter)
-        self.display.setMaxLength(15)
-
-        # 타이머 생성
-        self.timer = QTimer(self)
-        self.lcd = QLCDNumber()
-        self.StartButton = QPushButton("준비")
-        self.Timer(self.timer, self.lcd, self.StartButton, self.countdown, self.StartButtonClicked)
-
-        # player 타이머 생성
-        self.player_timer = QTimer(self)
-        self.player_lcd = QLCDNumber()
-        self.player_StartButton = QPushButton("준비")
-        self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
-                   self.player_StartButtonClicked)
-
-        # 아이템 버튼 생성
-        for i in itemList:
-            button = Button(i, self.itemClicked)
-            itemBox.addWidget(button)
-
-        # 카드 버튼 생성
-        for i in imageList:
-            for u in range(2):
-                button = Button("image/human1.jpg", self.buttonClicked, imageList.index(i), u)
-                dic[button] = i
-
-        random.shuffle(c)
-
-        # 레이아웃
-        playerBox.addWidget(self.display)
-        playerBox.addWidget(self.player_lcd)
-        playerBox.addWidget(self.player_StartButton)
-
-        TimerBox.addWidget(self.lcd)
-        TimerBox.addWidget(self.StartButton)
-
-        middleBox.addLayout(playerBox)
-        middleBox.addStretch(1)
-        middleBox.addLayout(TimerBox)
-        middleBox.addStretch(1)
-        middleBox.addLayout(itemBox)
-
-        mainBox.addLayout(middleBox)
-        mainBox.addStretch(1)
-        mainBox.addLayout(self.imageLayout)
-
-        self.resize(1000, 900)
-        self.center()
-        self.setLayout(mainBox)
-        self.show()
-
 
     def buttonClicked(self):
         key = self.sender()
@@ -196,7 +134,6 @@ class Client:
                 msg = pickle.loads(data)
             except:
                 msg = data.decode()
-            self.r.changeImage(msg, self.soc)
 
         self.r.delClient(self)
 
