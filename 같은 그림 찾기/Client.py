@@ -3,7 +3,7 @@ import socket
 import threading
 import time
 from PyQt5.QtWidgets import (QWidget, QLabel, QGridLayout,
-                             QVBoxLayout, QPushButton, QApplication, QHBoxLayout, QToolButton, QSizePolicy)
+                             QVBoxLayout, QPushButton, QApplication, QHBoxLayout, QToolButton, QSizePolicy, QMessageBox)
 from PyQt5 import QtGui
 from image import imageList, imageB, imageChange
 
@@ -49,6 +49,7 @@ class Client(QWidget):
         self.findImageList = []
 
     def initUI(self):
+        QMessageBox.information(self, "Hello", "Hello")
         # self.player1 = QLabel('player1')
         # self.player2 = QLabel('player2')
 

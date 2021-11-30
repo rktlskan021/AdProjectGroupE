@@ -4,16 +4,16 @@ import threading
 import pickle
 import time
 
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QDesktopWidget
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QDesktopWidget, QMessageBox
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtWidgets import QLineEdit, QToolButton
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QLayout, QGridLayout, QPushButton, QLCDNumber
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import QTimer, Qt, QCoreApplication
 
-current = 120
-player_current = 3
+current = 999999
+player_current = 999999
 # imageList = ["image/dog1.jpg", "image/dog2.jpg", "image/dog3.jpg",
 #              "image/dog4.jpg", "image/cat1.jpg", "image/cat2.jpg",
 #              "image/cat3.jpg", "image/bare1.jpg"]
@@ -43,14 +43,14 @@ class Button(QToolButton):
         size.setWidth(max(size.width(), size.height()))
         return size
 
-
 class Game(QWidget):
     ip = 'localhost'
-    port = 5000
+    port = 6000
     score = 0
-    outCount = 0
+    # outCount = 0
     turn = False
     clear = 0
+    item2Use = False
 
     def __init__(self):
         super().__init__()
@@ -80,6 +80,7 @@ class Game(QWidget):
         self.lcd = QLCDNumber()
         self.StartButton = QPushButton("준비")
         self.Timer(self.timer, self.lcd, self.StartButton, self.countdown, self.StartButtonClicked)
+        self.timer.start()
 
         # player 타이머 생성
         self.player_timer = QTimer(self)
@@ -87,12 +88,14 @@ class Game(QWidget):
         self.player_StartButton = QPushButton("준비")
         self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
                    self.player_StartButtonClicked)
+        self.player_timer.start()
 
         # 아이템 버튼 생성
-        for i in itemList:
-            button = Button(i, self.itemClicked)
-            itemBox.addWidget(button)
+        button = Button("image/clock.jpg", self.item1Clicked)
+        itemBox.addWidget(button)
 
+        button = Button("image/card.jpg", self.item2Clicked)
+        itemBox.addWidget(button)
         # 카드 버튼 생성
         for i in imageList:
             button = Button("image/human1.jpg", self.buttonClicked, imageList.index(i))
@@ -142,7 +145,8 @@ class Game(QWidget):
 
     def countdown(self):
         global current
-        self.lcd.display(current)
+        if current <= 120:
+            self.lcd.display(current)
         current -= 1
         if current < 0:
             self.lcd.display("00")
@@ -150,13 +154,17 @@ class Game(QWidget):
 
     def player_countdown(self):
         global player_current
-        self.player_lcd.display(player_current)
+        if player_current <= 13:
+            self.player_lcd.display(player_current)
         player_current -= 1
         if player_current < 0:
             self.player_lcd.display("00")
-            self.player_timer.stop()
+            player_current = 999999
             Game.turn = False
             self.setDisplay()
+            self.reverseImage()
+            t = threading.Thread(target=self.turnChange, args=())
+            t.start()
 
     def center(self):
         W_size = self.frameGeometry()
@@ -164,8 +172,16 @@ class Game(QWidget):
         W_size.moveCenter(center)
         self.move(W_size.topLeft())
 
-    def itemClicked(self):
-        pass
+    def item1Clicked(self):
+        if Game.turn:
+            global player_current
+            player_current += 5
+            self.sender().setEnabled(False)
+
+    def item2Clicked(self):
+        if Game.turn:
+            Game.item2Use = True
+            self.sender().setEnabled(False)
 
     def Timer(self, timer, lcd, StartButton, callback1, callback2):
         timer.setInterval(1000)
@@ -175,13 +191,18 @@ class Game(QWidget):
         StartButton.clicked.connect(callback2)
 
     def buttonClicked(self):
-        if Game.turn:
-            key = self.sender()
+        key = self.sender()
+        if Game.turn and not Game.item2Use:
             imageKey = imageB[c.index(key)] = not imageB[c.index(key)]
             # self.sender().setIcon(QtGui.QIcon(dic[key][imageKey]))
             self.sender().setIconSize(QtCore.QSize(110, 110))
             self.send(c.index(key), imageKey)
             self.changeImage((c.index(key), imageKey))
+        elif Game.item2Use:
+            key.setIconSize(QtCore.QSize(110, 110))
+            key.setIcon(QtGui.QIcon(dic[c[c.index(key)]][not imageB[c.index(key)]]))
+            t = threading.Thread(target=self.coolTime, args=[2])
+            t.start()
 
     def changeImage(self, info):
         key = info[0]
@@ -204,7 +225,7 @@ class Game(QWidget):
                 secondItem.setEnabled(False)
                 self.findImageList.clear()
                 Game.clear += 1
-                # 점수 추가8
+                # 점수 추가
                 if Game.turn:
                     self.score += 1
                     self.outCount = 0
@@ -218,15 +239,22 @@ class Game(QWidget):
                     self.send('B', ((self.findImageList[0], self.findImageList[1]), (firstImage, secondImage)))
                 self.reverse((self.findImageList[0], self.findImageList[1]), (firstImage, secondImage))
                 self.findImageList.clear()
-                self.outCount += 1
-                if self.outCount == 3 and Game.turn:
-                    # 턴 넘김
-                    Game.turn = False
-                    self.setDisplay()
-                    print("턴 넘김")
-                    self.outCount = 0
-                    t = threading.Thread(target=self.turnChange, args=())
-                    t.start()
+                # self.outCount += 1
+                # if self.outCount == 3 and Game.turn:
+                #     # 턴 넘김
+                #     Game.turn = False
+                #     self.setDisplay()
+                #     print("턴 넘김")
+                #     self.outCount = 0
+                #     t = threading.Thread(target=self.turnChange, args=())
+                #     t.start()
+
+    def reverseImage(self):
+        for j, i in enumerate(c):
+            if i.isEnabled():
+                i.setIcon(QtGui.QIcon("image/human1.jpg"))
+            imageB[j] = True
+        self.findImageList.clear()
 
     def turnChange(self):
         t = time.time()
@@ -242,11 +270,30 @@ class Game(QWidget):
         firstItem.setIcon(QtGui.QIcon(dic[c[first[0]]][second[0]]))
         secondItem.setIcon(QtGui.QIcon(dic[c[first[1]]][second[1]]))
 
+    def showImage(self):
+        for j, i in enumerate(c):
+            i.setIcon(QtGui.QIcon(imageList[j]))
+        t = threading.Thread(target=self.coolTime, args=[3])
+        t.start()
+
+    def coolTime(self, c):
+        global current
+        t = time.time()
+        while time.time() - t < c:
+            continue
+        if not Game.item2Use:
+            current = 120
+            self.setDisplay()
+        self.reverseImage()
+
     def setDisplay(self):
+        global player_current
         if Game.turn:
             self.display.setText("Your Turn")
+            player_current = 8
         else:
             self.display.setText("Not Your Turn")
+            player_current = 999999
 
     def run(self):
         t2 = threading.Thread(target=self.recvMsg, args=(self.client_socket,))
@@ -260,29 +307,34 @@ class Game(QWidget):
 
     def recvMsg(self, soc):
         global imageList
+        global current
+        global player_current
         while True:
             data = soc.recv(1024)
             try:
                 msg = pickle.loads(data)
             except:
                 msg = data.decode()
-            if msg[0] == 'A':
-                imageList = msg[1]
-            elif msg[0] == 'B':
-                self.reverse(msg[1][0], msg[1][1])
-            elif msg[0] == 'C':
-                Game.turn = msg[1]
-                self.setDisplay()
-            elif msg[0] == 'D':
-                Game.turn = False
-                self.setDisplay()
-                self.timer.start()
-            else:
-                self.changeImage(msg)
-            if msg == '':
-                break
+            try:
+                if msg[0] == 'A':
+                    imageList = msg[1]
+                elif msg[0] == 'B':
+                    self.reverse(msg[1][0], msg[1][1])
+                elif msg[0] == 'C':
+                    self.reverseImage()
+                    Game.turn = msg[1]
+                    self.setDisplay()
+                elif msg[0] == 'D':
+                    self.showImage()
+                else:
+                    self.changeImage(msg)
+            except KeyError:
+                buttonReply = QMessageBox.question(self, "결과", f"Your score : {msg['client2']}, Competitor score : {msg['client2']}", QMessageBox.Ok)
+                if buttonReply == QMessageBox.Ok:
+                    break
         soc.close()
-        print('클라이언트 리시브 쓰레드 종료')
+        return
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

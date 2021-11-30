@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QLayout, QGridLayout, QPushButton, QLCDNumber
 from PyQt5.QtCore import QTimer, Qt
 
 ip = ''
-port = 5000
+port = 6000
 current = 120
 player_current = 3
 imageList = ["image/dog1.jpg", "image/dog2.jpg", "image/dog3.jpg",
@@ -59,6 +59,12 @@ class Game(QWidget):
 
     def initUI(self):
         random.shuffle(imageList)
+        a = 0
+        for i in range(4):
+            for j in range(4):
+                print(imageList[a], end=' ')
+                a += 1
+            print()
         # 레이아웃 선언
         self.GameBox = QGridLayout()
         playerBox = QVBoxLayout()
@@ -86,17 +92,18 @@ class Game(QWidget):
         self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
                    self.player_StartButtonClicked)
 
-        # 아이템 버튼 생성
-        for i in itemList:
-            button = Button(i, self.itemClicked)
-            itemBox.addWidget(button)
+        # # 아이템 버튼 생성
+        # button = Button("image/clock.jpg", self.item1Clicked)
+        # itemBox.addWidget(button)
+        #
+        # button = Button("image/card.jpg", self.item2Clicked)
+        # itemBox.addWidget(button)
 
         # 카드 버튼 생성
         for i in imageList:
-            button = Button("image/human1.jpg", self.buttonClicked, imageList.index(i))
+            button = Button(i, self.buttonClicked, imageList.index(i))
             dic[button] = (i, "image/human1.jpg")
 
-        print(imageList)
         r = 0;d = 0
         for i in c:
             self.GameBox.addWidget(i, r, d)
@@ -174,6 +181,7 @@ class Game(QWidget):
     def itemClicked(self):
         pass
 
+
     def Timer(self, timer, lcd, StartButton, callback1, callback2):
         timer.setInterval(1000)
         timer.timeout.connect(callback1)
@@ -196,15 +204,18 @@ class Game(QWidget):
             data = msg.decode()
 
         for i in self.gamePlayer:
-            if i != soc and msg[0] != 'D':
-                print("전송")
-                i.sendall(data)
-            elif msg[0] == 'D':
+            try:
+                if i != soc and msg[0] != 'D':
+                    print("전송")
+                    i.sendall(data)
+                elif msg[0] == 'D':
+                    i.sendall(data)
+            except KeyError:
                 i.sendall(data)
 
-    def delClient(self, c):
-        c.close()
-        self.gamePlayer.remove(c)
+    def delClient(self, cli):
+        cli.close()
+        self.gamePlayer.remove(cli)
 
 class Client:
     gameStart = 0
@@ -219,11 +230,10 @@ class Client:
                 msg = pickle.loads(data)
             except:
                 msg = data.decode()
-            print(msg)
+
             if msg[0] == 'B':
                 self.r.send(msg, self.soc)
             elif msg[0] == 'C':
-                print('debug')
                 self.r.send(msg, self.soc)
             elif msg[0] == 'D':
                 Client.gameStart += msg[1]
@@ -231,11 +241,14 @@ class Client:
                     self.r.send(msg, self.soc)
             elif msg[0] == 'E':
                 Client.gameScore[msg[1][0]] = msg[1][1]
-                print(Client.gameScore)
+                if len(Client.gameScore) == 2:
+                    self.r.send(Client.gameScore, self.soc)
+                    break
             else:
                 self.r.changeImage(msg, self.soc)
 
-        self.r.delClient(self)
+        self.r.delClient(self.soc)
+        return
 
     def run(self):
         t = threading.Thread(target=self.recvs, args=())
@@ -248,6 +261,8 @@ class Server:
 
     def open(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # socket.setsockopt(self.server_socket, socket.SOL_SOCKET, socket.SO_REUSEADDR, 1, )
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind((ip, port))
         self.t = threading.Thread(target=self.listen, args=())
         self.t.start()
