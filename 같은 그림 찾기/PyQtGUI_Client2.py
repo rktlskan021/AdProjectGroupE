@@ -44,7 +44,7 @@ class Button(QToolButton):
         return size
 
 class Game(QWidget):
-    ip = 'localhost'
+    ip = '192.168.0.27'
     port = 6000
     score = 0
     # outCount = 0
