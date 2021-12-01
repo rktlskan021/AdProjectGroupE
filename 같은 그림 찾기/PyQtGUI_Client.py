@@ -52,7 +52,7 @@ class Game(QWidget):
     turn = False
     clear = 0
     item2Use = False
-
+    timeOver = False
     def __init__(self):
         super().__init__()
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -87,6 +87,7 @@ class Game(QWidget):
         self.player_timer = QTimer(self)
         self.player_lcd = QLCDNumber()
         self.player_StartButton = QPushButton("준비")
+        self.player_StartButton.setEnabled(False)
         self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
                    self.player_StartButtonClicked)
         self.player_timer.start()
@@ -114,7 +115,7 @@ class Game(QWidget):
         # 레이아웃
         playerBox.addWidget(self.display)
         playerBox.addWidget(self.player_lcd)
-        playerBox.addWidget(self.player_StartButton)
+        # playerBox.addWidget(self.player_StartButton)
 
         TimerBox.addWidget(self.lcd)
         TimerBox.addWidget(self.StartButton)
@@ -152,6 +153,7 @@ class Game(QWidget):
         current -= 1
         if current < 0:
             self.lcd.display("00")
+            Game.timeOver = True
             self.timer.stop()
 
     def player_countdown(self):
@@ -189,7 +191,7 @@ class Game(QWidget):
         timer.setInterval(1000)
         timer.timeout.connect(callback1)
         lcd.display("")
-        lcd.setDigitCount(10)
+        lcd.setDigitCount(3)
         StartButton.clicked.connect(callback2)
 
     # def startTimers(self):
@@ -238,7 +240,7 @@ class Game(QWidget):
                 if Game.turn:
                     self.score += 1
                     self.outCount = 0
-                if Game.clear == 8:
+                if Game.clear == 8 or Game.timeOver:
                     self.send('E', ("client", self.score))
             else:
                 # 실패 코드

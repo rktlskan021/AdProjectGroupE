@@ -13,7 +13,7 @@ from PyQt5.QtCore import QTimer, Qt
 
 ip = ''
 port = 6000
-current = 120
+current = 999999
 player_current = 3
 imageList = ["image/dog1.jpg", "image/dog2.jpg", "image/dog3.jpg",
              "image/dog4.jpg", "image/cat1.jpg", "image/cat2.jpg",
@@ -59,12 +59,7 @@ class Game(QWidget):
 
     def initUI(self):
         random.shuffle(imageList)
-        a = 0
-        for i in range(4):
-            for j in range(4):
-                print(imageList[a], end=' ')
-                a += 1
-            print()
+
         # 레이아웃 선언
         self.GameBox = QGridLayout()
         playerBox = QVBoxLayout()
@@ -74,23 +69,23 @@ class Game(QWidget):
         mainBox = QVBoxLayout()
 
         # player text 상자 생성
-        self.display = QLineEdit("it's your turn")
-        self.display.setReadOnly(True)
-        self.display.setAlignment(Qt.AlignCenter)
-        self.display.setMaxLength(15)
+        # self.display = QLineEdit("it's your turn")
+        # self.display.setReadOnly(True)
+        # self.display.setAlignment(Qt.AlignCenter)
+        # self.display.setMaxLength(15)
 
         # 타이머 생성
         self.timer = QTimer(self)
         self.lcd = QLCDNumber()
-        self.StartButton = QPushButton("준비")
-        self.Timer(self.timer, self.lcd, self.StartButton, self.countdown, self.StartButtonClicked)
+        self.Timer(self.timer, self.lcd, self.countdown)
+        self.timer.start()
 
         # player 타이머 생성
-        self.player_timer = QTimer(self)
-        self.player_lcd = QLCDNumber()
-        self.player_StartButton = QPushButton("준비")
-        self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
-                   self.player_StartButtonClicked)
+        # self.player_timer = QTimer(self)
+        # self.player_lcd = QLCDNumber()
+        # self.player_StartButton = QPushButton("준비")
+        # self.Timer(self.player_timer, self.player_lcd, self.player_StartButton, self.player_countdown,
+        #            self.player_StartButtonClicked)
 
         # # 아이템 버튼 생성
         # button = Button("image/clock.jpg", self.item1Clicked)
@@ -113,15 +108,16 @@ class Game(QWidget):
                 r += 1
 
         # 레이아웃
-        playerBox.addWidget(self.display)
-        playerBox.addWidget(self.player_lcd)
-        playerBox.addWidget(self.player_StartButton)
+        # playerBox.addWidget(self.display)
+        # playerBox.addWidget(self.player_lcd)
+        # playerBox.addWidget(self.player_StartButton)
 
         TimerBox.addWidget(self.lcd)
-        TimerBox.addWidget(self.StartButton)
+        # TimerBox.addWidget(self.StartButton)
 
         middleBox.addLayout(playerBox)
         middleBox.addStretch(1)
+
         middleBox.addLayout(TimerBox)
         middleBox.addStretch(1)
         middleBox.addLayout(itemBox)
@@ -146,19 +142,20 @@ class Game(QWidget):
 
     def countdown(self):
         global current
-        self.lcd.display(current)
+        if current <= 120:
+            self.lcd.display(current)
         current -= 1
         if current < 0:
             self.lcd.display("00")
             self.timer.stop()
 
-    def player_countdown(self):
-        global player_current
-        self.player_lcd.display(player_current)
-        player_current -= 1
-        if player_current < 0:
-            self.player_lcd.display("00")
-            self.player_timer.stop()
+    # def player_countdown(self):
+    #     global player_current
+    #     self.player_lcd.display(player_current)
+    #     player_current -= 1
+    #     if player_current < 0:
+    #         self.player_lcd.display("00")
+    #         self.player_timer.stop()
 
     def center(self):
         W_size = self.frameGeometry()
@@ -178,16 +175,11 @@ class Game(QWidget):
         self.GameBox.itemAt(key).widget().setIcon(QtGui.QIcon(dic[c[key]][imageKey]))
         self.send(info, soc)
 
-    def itemClicked(self):
-        pass
-
-
-    def Timer(self, timer, lcd, StartButton, callback1, callback2):
+    def Timer(self, timer, lcd, callback1):
         timer.setInterval(1000)
         timer.timeout.connect(callback1)
         lcd.display("")
         lcd.setDigitCount(10)
-        StartButton.clicked.connect(callback2)
 
     def startServer(self):
         self.s.open()
@@ -224,6 +216,7 @@ class Client:
         self.soc = soc
         self.r = r
     def recvs(self):
+        global current
         while True:
             data = self.soc.recv(1024)
             try:
@@ -238,6 +231,7 @@ class Client:
             elif msg[0] == 'D':
                 Client.gameStart += msg[1]
                 if Client.gameStart == 2:
+                    current = 120
                     self.r.send(msg, self.soc)
             elif msg[0] == 'E':
                 Client.gameScore[msg[1][0]] = msg[1][1]
