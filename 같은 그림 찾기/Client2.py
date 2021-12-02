@@ -34,7 +34,7 @@ class Button(QToolButton):
 
 
 class Client(QWidget):
-    ip = 'localhost'
+    ip = '192.168.0.13'
     port = 5000
 
     def __init__(self):

@@ -44,7 +44,7 @@ class Button(QToolButton):
         return size
 
 class Game(QWidget):
-    ip = '192.168.0.27'
+    ip = '192.168.0.13'
     port = 6000
     score = 0
     turn = False
@@ -286,6 +286,8 @@ class Game(QWidget):
         if not Game.item2Use:
             current = 120
             self.setDisplay()
+        else:
+            Game.item2Use = False
         self.reverseImage()
 
     def setDisplay(self):
@@ -331,7 +333,7 @@ class Game(QWidget):
                 else:
                     self.changeImage(msg)
             except KeyError:
-                buttonReply = QMessageBox.question(self, "결과", f"Your score : {msg['client2']}, Competitor score : {msg['client2']}", QMessageBox.Ok)
+                buttonReply = QMessageBox.question(self, "결과", f"Your score : {msg['client2']}, Competitor score : {msg['client']}", QMessageBox.Ok)
                 if buttonReply == QMessageBox.Ok:
                     break
         soc.close()
