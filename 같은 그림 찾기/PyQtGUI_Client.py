@@ -45,7 +45,7 @@ class Button(QToolButton):
 
 
 class Game(QWidget):
-    ip = '192.168.0.27'
+    ip = '192.168.0.13'
     port = 6000
     score = 0
     # outCount = 0
@@ -209,6 +209,7 @@ class Game(QWidget):
             self.send(c.index(key), imageKey)
             self.changeImage((c.index(key), imageKey))
         elif Game.item2Use:
+            print('debug1')
             key.setIconSize(QtCore.QSize(110, 110))
             key.setIcon(QtGui.QIcon(dic[c[c.index(key)]][not imageB[c.index(key)]]))
             t = threading.Thread(target=self.coolTime, args=[2])
@@ -235,7 +236,6 @@ class Game(QWidget):
                 secondItem.setEnabled(False)
                 self.findImageList.clear()
                 Game.clear += 1
-                print(Game.clear)
                 # 점수 추가
                 if Game.turn:
                     self.score += 1
@@ -281,6 +281,8 @@ class Game(QWidget):
             current = 120
             Game.turn = True
             self.setDisplay()
+        else:
+            Game.item2Use = False
         self.reverseImage()
 
     def turnChange(self):
@@ -311,7 +313,6 @@ class Game(QWidget):
         t2.start()
 
     def send(self, nk, ik):
-        print(f"({nk}, {ik})")
         try:
             self.client_socket.sendall(pickle.dumps((nk, ik)))
         except Exception as e:

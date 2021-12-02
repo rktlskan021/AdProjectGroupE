@@ -10,7 +10,7 @@ def sendMsg(soc):
 
 def recvMsg(soc):
     while True:
-        data = soc.recvs(1024)
+        data = soc.recv(1024)
         msg = data.decode()
         print(msg)
         if msg == '/stop':
